@@ -29,11 +29,19 @@
       (:h4 "Home"))))
 
 (defun login-page ()
-  (hunchentoot:define-easy-handler (login-page :uri "/login") ()
-    (with-layout
-      (:h4 "Login")
-      (:form :method "post"
-             (:input :type "email" :name "email")
-             (:input :type "password" :name "password")
-             (:button :type "submit" "Login")))))
- 
+  (hunchentoot:define-easy-handler (login-page :uri "/login") ((email :request-type :post)
+                                                               (password :request-type :post))
+    (let ((message ""))
+      (case (hunchentoot:request-method*)
+        (:post
+         (setf message (if (and (string= email "ben@home.com") (string= password "test"))
+                           "Login successful."
+                           "Login failed."))))
+      (with-layout
+          (:h4 "Login")
+          (:div 
+             (:form :method "post"
+                (:input :type "email" :name "email")
+                (:input :type "password" :name "password")
+                (:button :type "submit" "Login")))
+          (:p (cl-who:str message))))))
