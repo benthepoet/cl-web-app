@@ -13,4 +13,5 @@
   :description "A simple web application in Common Lisp using Hunchentoot."
   :serial T
   :components ((:file "package"))
-  :depends-on ())
+  :depends-on (:cl-who
+               :hunchentoot))
