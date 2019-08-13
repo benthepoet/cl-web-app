@@ -70,7 +70,8 @@
 
 (defun logout-page ()
   (hunchentoot:define-easy-handler (logout :uri "/logout") ()
-    (hunchentoot:remove-session hunchentoot:*session*)
+    (when hunchentoot:*session*
+      (hunchentoot:remove-session hunchentoot:*session*))
     (hunchentoot:redirect "/")))
 
 (defun auth-user (email password)
