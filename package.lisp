@@ -16,6 +16,7 @@
            #:create-user
            #:home-page
            #:login-page
+           #:logout-page
            #:with-database
            #:with-layout))
 
@@ -33,19 +34,20 @@
 (defun start-server ()
   (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 4242))
   (home-page)
-  (login-page))
+  (login-page)
+  (logout-page))
 
 (defun setup-database ()
   (with-database db
     (sqlite:execute-non-query db "CREATE TABLE user (id integer primary key not null, email text not null, password text not null)")))
 
 (defun home-page ()
-  (hunchentoot:define-easy-handler (home-page :uri "/") ()
+  (hunchentoot:define-easy-handler (home :uri "/") ()
     (with-layout
       (:h4 "Home"))))
 
 (defun login-page ()
-  (hunchentoot:define-easy-handler (login-page :uri "/login") ((email :request-type :post)
+  (hunchentoot:define-easy-handler (login :uri "/login") ((email :request-type :post)
                                                                (password :request-type :post))
     (let ((message nil))
       (case (hunchentoot:request-method*)
@@ -63,16 +65,23 @@
                 (:input :type "password" :name "password")
                 (:button :type "submit" "Login")))
         (:p (cl-who:str message))
-        (if hunchentoot:*session*
+        (when hunchentoot:*session*
             (cl-who:htm (:p (cl-who:str "Session Active"))))))))
+
+(defun logout-page ()
+  (hunchentoot:define-easy-handler (logout :uri "/logout") ()
+    (hunchentoot:remove-session hunchentoot:*session*)
+    (hunchentoot:redirect "/")))
 
 (defun auth-user (email password)
   (with-database db
-    (let ((hash (sqlite:execute-single db "SELECT password FROM user WHERE email = ?" email)))
-      (if hash
-          (ironclad:pbkdf2-check-password (ironclad:ascii-string-to-byte-array password) hash)))))
+    (let ((password-bytes (ironclad:ascii-string-to-byte-array password))
+          (hash (sqlite:execute-single db "SELECT password FROM user WHERE email = ?" email)))
+      (when hash
+        (ironclad:pbkdf2-check-password password-bytes hash)))))
 
 (defun create-user (email password)
-  (let ((hash (ironclad:pbkdf2-hash-password-to-combined-string (ironclad:ascii-string-to-byte-array password))))
+  (let* ((password-bytes (ironclad:ascii-string-to-byte-array password))
+         (hash (ironclad:pbkdf2-hash-password-to-combined-string password-bytes)))
     (with-database db
       (sqlite:execute-non-query db "INSERT INTO user (email, password) VALUES (?, ?)" email hash))))
