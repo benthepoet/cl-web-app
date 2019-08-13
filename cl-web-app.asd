@@ -14,4 +14,6 @@
   :serial T
   :components ((:file "package"))
   :depends-on (:cl-who
-               :hunchentoot))
+               :hunchentoot
+               :ironclad
+               :sqlite))
